@@ -1,0 +1,97 @@
+#!/usr/bin/env ruby
+
+template_string = """
+#
+# name:     write a document named \"moomin\"
+# due_date: 070717 
+# state:    open
+#
+"""
+
+STATE_OPEN   = "open"
+STATE_CLOSED = "closed"
+
+task_dir = "/usr/local/etc/todo"
+system "mkdir -p #{task_dir}" unless File.directory?(task_dir)
+
+def options 
+  ARGV.select {|arg| /^\-.*/.match(arg) }
+end
+
+def values
+  ARGV.select {|arg| !/^\-.*/.match(arg) }
+end
+
+def ask(message)
+  print "[#{message}] "
+  opt = $stdin.gets.chomp.downcase
+  abort if opt == "q"
+  ask(message) if opt.nil? || opt.strip == ""
+  opt
+end
+
+def add(task_dir)
+  name = values[0] || ask("name")
+  date = values[1] || ask("date (YYYYmmdd) ").gsub("/","")
+  abort "\ndate format incorrect\n\n" unless /^20\d{6}$/.match(date)
+  file_name = File.join(task_dir, "#{date}.task")
+  f = File.open(file_name, "w+")
+  f.puts "#{name}:open"
+  f.close
+  puts "\nregistration complete\n\n"
+end
+
+def parse(task_dir)
+  Dir["#{File.join(task_dir)}/*"].map do |task|
+    [File.basename(task).gsub(".task", ""), File.open(task, "r").to_a]
+  end.flatten
+end
+
+def all_tasks(task_dir)
+  new_hash = {}
+  Hash[*(parse(task_dir))].each do |key, value|
+    new_hash[key] =  value.chomp.split(":")
+  end
+  new_hash
+end
+
+require "colorize"
+require "date"
+
+def exceeded?(task)
+  (Time.now.strftime("%Y%m%d").to_i < "#{task[0]}".to_i) && task[1][1] == "open"
+end
+
+def find(task_dir)
+  tasks = all_tasks(task_dir)
+  if options.size == 0
+    tasks.each_with_index do |task, i|
+      if exceeded?(task)
+        puts "#{task[0]}".red
+      else
+        puts "#{task[0]}".green
+      end
+      print "  "
+      puts task[1].to_s
+    end  
+  end
+  opt = ask("index")
+  file =  "#{File.join(task_dir, opt)}.task"
+  abort "\nfile does not exist\n\n".red unless File.exist?(file)
+  system "vim #{file}"
+end
+
+case options.first
+when "-h"
+  puts 
+  puts "todo -h ... help"
+  puts "todo -a ... add task"
+  puts "X todo [yyyyMMdd]..[yyyyMMdd] ... extract todos with date range "
+  puts "X todo [?query] ... extract todos with label"
+  puts 
+when "-a"  
+  add(task_dir)
+else
+  find(task_dir)
+end
+
