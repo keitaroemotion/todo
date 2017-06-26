@@ -76,8 +76,25 @@ def find(task_dir)
     end  
   end
   opt = ask("index")
-  file =  "#{File.join(task_dir, opt)}.task"
-  abort "\nfile does not exist\n\n".red unless File.exist?(file)
+  file = "#{File.join(task_dir, opt)}.task"
+
+  def select_file(matches, dir, opt)
+    case matches.size 
+    when 1
+      matches.first
+    else
+      matches = Dir["#{dir}/*"] if matches == []
+      puts matches.to_s.yellow
+      matches.each do |match|
+        puts "#{File.basename(match)}"
+      end
+      opt ||= ask("which?")
+      matches = matches.select {|match| /#{opt}/.match(match) }
+      select_file(matches, dir, nil)
+    end
+  end
+
+  file = select_file([], task_dir, opt)
   system "vim #{file}"
 end
 
