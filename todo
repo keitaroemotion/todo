@@ -61,7 +61,7 @@ require "colorize"
 require "date"
 
 def exceeded?(task)
-  (Time.now.strftime("%Y%m%d").to_i < "#{task[0]}".to_i) && task[1][1] == "open"
+  (Time.now.strftime("%Y%m%d").to_i > "#{task[0]}".to_i) && task[1][1] == "open"
 end
 
 def find(task_dir)
