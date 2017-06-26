@@ -44,6 +44,8 @@ end
 def parse(task_dir)
   Dir["#{File.join(task_dir)}/*"].map do |task|
     [File.basename(task).gsub(".task", ""), File.open(task, "r").to_a]
+  end.select do |k, v|
+    v.size > 0
   end.flatten
 end
 
